@@ -1,0 +1,7 @@
+{
+  "modules": [
+    {"name": "subscription-core", "file": "subscription_core.wat", "description": "Recurring subscription billing conversion and due-date checks"},
+    {"name": "checksum", "file": "checksum.wat", "description": "FNV-1a checksum and hashing over WebAssembly memory"},
+    {"name": "integer-math", "file": "integer_math.wat", "description": "Integer clamp and greatest-common-divisor utilities"}
+  ]
+}

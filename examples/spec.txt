@@ -1,0 +1,1 @@
+Build a WebAssembly component that computes an FNV-1a checksum over a byte range in exported linear memory.

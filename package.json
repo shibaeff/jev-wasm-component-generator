@@ -1,0 +1,15 @@
+{
+  "name": "jev-wasm-component-generator",
+  "version": "1.0.0",
+  "description": "A generic, WAT-only component generator driven by Jev choices",
+  "private": true,
+  "type": "commonjs",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "audit": "python3 -m synth.audit"
+  },
+  "dependencies": {
+    "wabt": "1.0.37"
+  }
+}
