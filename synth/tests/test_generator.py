@@ -47,9 +47,9 @@ class GeneratorTests(unittest.TestCase):
     def setUpClass(cls):
         cls.library = load_library(ROOT / "library")
 
-    def test_library_has_three_unique_blocked_modules(self):
-        self.assertEqual(len(self.library), 3)
-        self.assertEqual(len({item.source for item in self.library}), 3)
+    def test_library_has_four_unique_blocked_modules(self):
+        self.assertEqual(len(self.library), 4)
+        self.assertEqual(len({item.source for item in self.library}), 4)
         for item in self.library:
             self.assertGreaterEqual(len(item.blocks), 2)
             self.assertEqual("".join(item.blocks), item.source)
@@ -60,6 +60,7 @@ class GeneratorTests(unittest.TestCase):
             "monthly subscription billing and due dates": "subscription-core",
             "FNV checksum hash bytes": "checksum",
             "integer math gcd clamp": "integer-math",
+            "Ethereum transaction intrinsic gas validation and regular gas cap": "ethereum-intrinsic-gas-validator",
         }
         for spec, expected in cases.items():
             with self.subTest(spec=spec):

@@ -113,6 +113,9 @@ Host Python, JavaScript, and shell code orchestrate and validate. They are **nev
 - `subscription_core.wat` — recurring billing and due-date arithmetic
 - `checksum.wat` — FNV-1a over exported linear memory
 - `integer_math.wat` — signed clamp and unsigned GCD
+- `ethereum_intrinsic_gas_validator.wat` — ordered Ethereum transaction intrinsic-gas sufficiency and regular-cap validation over unsigned 64-bit inputs
+
+The Ethereum module validates already-calculated gas values; it does not calculate intrinsic gas, execute transactions, or verify an Ethereum client. A measured live Jev run reconstructed its three WAT blocks plus `END` in four model calls, after which exact compilation and behavioral tests supplied the executable evidence.
 
 Add a standalone `.wat` module, split it into ordered `;; JEV BLOCK:` sections, register it in `library/index.json`, and add behavioral tests.
 

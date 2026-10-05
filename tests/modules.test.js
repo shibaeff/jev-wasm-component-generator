@@ -29,3 +29,17 @@ test('integer math module compiles independently', async () => {
   assert.equal(wasm.clamp_i32(3, 0, 10), 3);
   assert.equal(wasm.gcd_u32(54, 24), 6);
 });
+
+test('Ethereum intrinsic-gas validator preserves ordered checks', async () => {
+  const wasm = await loadWat(library('ethereum_intrinsic_gas_validator.wat'));
+  const validate = wasm.validate_intrinsic_gas;
+
+  assert.equal(validate(21_000n, 21_000n, 0n, 21_000n, 0n), 0);
+  assert.equal(validate(20_999n, 21_000n, 0n, 21_000n, 0n), 1);
+  assert.equal(validate(30_000n, 21_000n, 30_001n, 21_000n, 0n), 2);
+  assert.equal(validate(30_000n, 21_000n, 29_000n, 30_001n, 30_000n), 3);
+  assert.equal(validate(30_000n, 21_000n, 30_001n, 30_001n, 30_000n), 2);
+  assert.equal(validate(-1n, -1n, -1n, -1n, -1n), 0);
+  assert.equal(validate(-9_223_372_036_854_775_808n, 9_223_372_036_854_775_807n, 0n, 0n, 0n), 0);
+  assert.equal(validate(9_223_372_036_854_775_807n, -9_223_372_036_854_775_808n, 0n, 0n, 0n), 1);
+});

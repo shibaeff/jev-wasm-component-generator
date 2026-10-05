@@ -2,6 +2,7 @@
   "modules": [
     {"name": "subscription-core", "file": "subscription_core.wat", "description": "Recurring subscription billing conversion and due-date checks"},
     {"name": "checksum", "file": "checksum.wat", "description": "FNV-1a checksum and hashing over WebAssembly memory"},
-    {"name": "integer-math", "file": "integer_math.wat", "description": "Integer clamp and greatest-common-divisor utilities"}
+    {"name": "integer-math", "file": "integer_math.wat", "description": "Integer clamp and greatest-common-divisor utilities"},
+    {"name": "ethereum-intrinsic-gas-validator", "file": "ethereum_intrinsic_gas_validator.wat", "description": "Ordered Ethereum transaction intrinsic-gas sufficiency and regular-cap validation"}
   ]
 }
