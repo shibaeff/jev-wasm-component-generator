@@ -28,7 +28,7 @@ class LiveModel:
         prediction = self.client.score_next(spec, prefix, [options[key] for key in ordered])
         selected = ordered[[options[key] for key in ordered].index(prediction.top_prediction)]
         probabilities = {ordered[index]: item.probability for index, item in enumerate(prediction.probabilities)}
-        return Choice(selected, probabilities, prediction.model)
+        return Choice(selected, probabilities, prediction.model, prediction.usage)
 
 
 def _parser() -> argparse.ArgumentParser:

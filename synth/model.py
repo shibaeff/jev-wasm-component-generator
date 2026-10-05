@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Mapping
 
 
@@ -11,6 +11,7 @@ class Choice:
     option_id: str
     probabilities: Mapping[str, float]
     model: str
+    usage: Mapping[str, int] = field(default_factory=dict)
 
 
 class ScriptedModel:

@@ -35,7 +35,7 @@ printf '%s\n' 'integer clamp and greatest common divisor' | \
 4. Appends only the chosen WAT block. No reference/teacher continuation is injected.
 5. Repeats until Jev chooses explicit `END`.
 6. Accepts `END` only if the exact prefix compiles and exactly matches a library component.
-7. Writes the WAT and a sanitized JSON probability trace atomically.
+7. Writes the WAT and a sanitized JSON probability trace with per-step and total API token usage atomically.
 
 Every model-facing source candidate is either a WAT block beginning with `;; JEV BLOCK:` or the `END` sentinel. Host Python, JavaScript, and shell code only orchestrate and validate; they are never presented as Jev-generated output.
 

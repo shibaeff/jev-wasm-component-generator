@@ -104,6 +104,7 @@ def decode(spec: str, candidates: tuple[Candidate, ...], model: ChoiceModel) -> 
             "early_end_rejected": rejected_end,
             "probabilities": dict(choice.probabilities),
             "model": choice.model,
+            "usage": dict(choice.usage),
         }
         steps.append(step)
 
@@ -119,6 +120,10 @@ def decode(spec: str, candidates: tuple[Candidate, ...], model: ChoiceModel) -> 
                 "teacher_forcing": False,
                 "spec_sha256": _digest(spec),
                 "api_call_count": len(steps),
+                "usage": {
+                    "input_tokens": sum(step["usage"].get("input_tokens", 0) for step in steps),
+                    "output_tokens": sum(step["usage"].get("output_tokens", 0) for step in steps),
+                },
                 "steps": steps,
                 "termination": END,
                 "selected": {"name": selected.name, "file": selected.filename, "sha256": _digest(prefix)},
