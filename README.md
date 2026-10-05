@@ -1,59 +1,130 @@
 # jev-wasm-component-generator
 
-A reusable Jev workflow that reconstructs **only WebAssembly Text (WAT)** from a local component library. A human supplies a program specification; Jev repeatedly ranks the valid next WAT blocks or `END`, starting from an empty prefix. The exact result must compile before it is written.
+> **Give it a program spec. Jev assembles the WAT. The compiler gets the final vote.**
 
-> Scientific claim boundary: the shipped workflow performs autonomous closed-candidate retrieval/imitation. Exact reconstruction of a library component is not novel program synthesis.
+**3 decisions · 1,828 input tokens · $0.0000768 · valid WebAssembly**
 
-## Quick start
+This repository turns Jev into a tiny autonomous WebAssembly component builder. It starts from nothing, repeatedly chooses the next legal WAT block, decides when to stop, and ships the result only after exact compilation.
+
+No free-form host code. No teacher forcing. No “looks valid” output. No fake novelty claims.
+
+## Why this is interesting
+
+Frontier coding models are powerful—but expensive and unconstrained. Jev costs **$0.042 per million input tokens**, returns typed probability distributions, and charges nothing for output. For bounded component families, that makes program construction a sequence of cheap, auditable decisions.
+
+A measured live run reconstructed and compiled the checksum component with:
+
+- **3** calls to `jev-1.13.0`
+- **1,828** input tokens and **143** output tokens
+- **$0.0000768** estimated Jev cost
+- roughly **33×–166× cheaper** than the same token envelope on current Anthropic models
+
+See **[the reproducible cost breakdown](docs/COSTS.md)** or run `make cost TRACE=generated/trace.json`.
+
+## Sixty-second demo
 
 ```sh
+git clone https://github.com/shibaeff/jev-wasm-component-generator.git
+cd jev-wasm-component-generator
 npm ci
 
-# Deterministic offline smoke test
-./jev-wasm "FNV-1a checksum over bytes"
-
-# Live Jev
 export TYPESAFE_API_KEY='your-key'
+./jev-wasm --model jev-latest \
+  "Build a WebAssembly FNV-1a checksum component over exported linear memory"
+```
+
+Results:
+
+```text
+generated/component.wat   # exact compiled WAT
+generated/trace.json      # every choice, probability, model and token count
+```
+
+No key yet? Run the deterministic local model:
+
+```sh
+./jev-wasm "integer clamp and greatest common divisor"
+```
+
+## Three ways to provide a specification
+
+**Inline:**
+
+```sh
 ./jev-wasm --model jev-latest "monthly subscription billing and due-date checks"
+```
 
-# Specification file
-./jev-wasm --model jev-latest --spec-file examples/spec.txt \
-  --output generated/component.wat --trace generated/trace.json
+**File:**
 
-# Standard input
-printf '%s\n' 'integer clamp and greatest common divisor' | \
+```sh
+./jev-wasm --model jev-latest \
+  --spec-file examples/spec.txt \
+  --output generated/component.wat \
+  --trace generated/trace.json
+```
+
+**Standard input:**
+
+```sh
+printf '%s\n' 'integer clamp and greatest common divisor' |
   ./jev-wasm --model jev-latest --output generated/math.wat
 ```
 
-`--output` defaults to `generated/component.wat`; `--trace` defaults to `generated/trace.json`. Inline text, `--spec-file`, and stdin are mutually exclusive. The key is read only from `JEV_API_KEY` or `TYPESAFE_API_KEY`; it is never written to traces.
+The API key is read only from `JEV_API_KEY` or `TYPESAFE_API_KEY`. It is never written to source or traces.
 
-## What the loop does
+## The loop
 
-1. Starts with an empty WAT prefix.
-2. Finds valid next blocks from `library/*.wat` whose preceding blocks exactly match the prefix.
-3. Sends the program spec, current prefix, and opaque `option_NNN` choices to Jev.
-4. Appends only the chosen WAT block. No reference/teacher continuation is injected.
-5. Repeats until Jev chooses explicit `END`.
-6. Accepts `END` only if the exact prefix compiles and exactly matches a library component.
-7. Writes the WAT and a sanitized JSON probability trace with per-step and total API token usage atomically.
+```text
+program spec
+    │
+    ▼
+empty WAT prefix
+    │
+    ▼
+valid next WAT blocks ──► opaque option_NNN choices
+    │                              │
+    │                              ▼
+    └────────────────────────── Jev ranking
+                                   │
+                         chosen block or END
+                                   │
+                    ┌──────────────┴──────────────┐
+                    ▼                             ▼
+              append WAT                  compile exact prefix
+                    │                             │
+                    └──────── repeat ─────────────┘
+                                                  │
+                                            verified .wat
+```
 
-Every model-facing source candidate is either a WAT block beginning with `;; JEV BLOCK:` or the `END` sentinel. Host Python, JavaScript, and shell code only orchestrate and validate; they are never presented as Jev-generated output.
+1. Start with an empty prefix.
+2. Propose only valid next `;; JEV BLOCK:` sections from the component library, plus explicit `END`.
+3. Map actions to opaque `option_NNN` IDs.
+4. Ask Jev using the specification and full current prefix.
+5. Append only Jev’s selected WAT block—never a reference continuation.
+6. Call Jev again for every block and the final `END`.
+7. Reject premature `END` when the prefix is not an exact compiling component.
+8. Atomically write WAT and a sanitized trace with token usage.
 
-## Included component demonstrations
+Host Python, JavaScript, and shell code orchestrate and validate. They are **never** represented as Jev-generated output.
+
+## Included component library
 
 - `subscription_core.wat` — recurring billing and due-date arithmetic
 - `checksum.wat` — FNV-1a over exported linear memory
 - `integer_math.wat` — signed clamp and unsigned GCD
 
-Add a self-contained `.wat` module to `library/`, divide it into ordered `;; JEV BLOCK:` sections, add its manifest entry, and add behavior tests. The current system can reconstruct only paths represented in this finite library; arbitrary unseen algorithms require extending the proposer/library.
+Add a standalone `.wat` module, split it into ordered `;; JEV BLOCK:` sections, register it in `library/index.json`, and add behavioral tests.
 
-## Agent packages
+## Agent skills included
 
-- Codex: `.agents/skills/jev-wasm-component-generator/SKILL.md` + `AGENTS.md`
-- Claude Code: `.claude/skills/jev-wasm-component-generator/SKILL.md` + `CLAUDE.md`
-- Hermes: `.hermes/skills/jev-wasm-component-generator/SKILL.md`
+One repository, three agent ecosystems:
 
-Install all three user-level copies:
+- **Codex:** `.agents/skills/jev-wasm-component-generator/SKILL.md` + `AGENTS.md`
+- **Claude Code:** `.claude/skills/jev-wasm-component-generator/SKILL.md` + `CLAUDE.md`
+- **Hermes:** `.hermes/skills/jev-wasm-component-generator/SKILL.md`
+
+Install all user-level copies:
 
 ```sh
 ./scripts/install-skills.sh
@@ -62,8 +133,17 @@ Install all three user-level copies:
 ## Verification
 
 ```sh
-make test       # Python loop/CLI tests + compiled Wasm behavior tests
-make audit      # WAT purity, compilation, traces, secrets, machine paths
+make test
+make audit
+make cost TRACE=generated/trace.json
 ```
 
-The verification commands are deterministic offline checks and need no API key. See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the protocol and failure rules.
+The test suite compiles every library module, executes its exports, checks autonomous multi-call decoding, proves that premature `END` cannot terminate invalid WAT, and audits secrets, machine paths, trace integrity, and language purity.
+
+## The honest boundary
+
+Today this is **autonomous retrieval/imitation over a finite WAT component library**. It does not invent arbitrary unseen algorithms. Exact reconstruction is not novel synthesis.
+
+That boundary is the feature: the decisions are cheap, constrained, inspectable, and compiler-verified. The research path is to replace the finite continuation library with a type- and stack-valid symbolic proposer, then evaluate genuinely held-out programs.
+
+Protocol: [docs/WORKFLOW.md](docs/WORKFLOW.md) · Costs: [docs/COSTS.md](docs/COSTS.md)

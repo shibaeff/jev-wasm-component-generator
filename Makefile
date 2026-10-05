@@ -1,4 +1,6 @@
-.PHONY: test audit compile-library clean
+.PHONY: test audit compile-library cost clean
+
+TRACE ?= generated/trace.json
 
 test: compile-library
 	python3 -m unittest discover -s synth/tests -v
@@ -10,6 +12,9 @@ compile-library:
 
 audit:
 	python3 -m synth.audit
+
+cost:
+	python3 scripts/estimate_cost.py "$(TRACE)"
 
 clean:
 	rm -rf generated __pycache__ synth/__pycache__ synth/jev/__pycache__ synth/tests/__pycache__
