@@ -66,4 +66,4 @@ make test       # Python loop/CLI tests + compiled Wasm behavior tests
 make audit      # WAT purity, compilation, traces, secrets, machine paths
 ```
 
-CI runs only deterministic offline checks and needs no API key. See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the protocol and failure rules.
+The verification commands are deterministic offline checks and need no API key. See [docs/WORKFLOW.md](docs/WORKFLOW.md) for the protocol and failure rules.
