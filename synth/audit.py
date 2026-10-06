@@ -66,7 +66,10 @@ if __name__ == "__main__":
 
 # Kept as the live-client boundary check: candidate-bearing fields must contain WAT or END.
 def audit_payload(payload, source_context: bool = False) -> None:
-    source_keys = {"wat_source_block", "generated_wat_prefix", "source", "block", "blocks"}
+    source_keys = {
+        "wat_source_block", "generated_wat_prefix", "source", "block", "blocks",
+        "current_wat", "target_wat", "inserted_wat_blocks",
+    }
     if isinstance(payload, dict):
         for key, value in payload.items():
             audit_payload(value, source_context or key in source_keys)

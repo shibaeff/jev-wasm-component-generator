@@ -72,7 +72,46 @@ printf '%s\n' 'integer clamp and greatest common divisor' |
 
 The API key is read only from `JEV_API_KEY` or `TYPESAFE_API_KEY`. It is never written to source or traces.
 
-## The loop
+## Evolve a whole program: insertion sort → quicksort
+
+The second workflow begins with a complete working program rather than an empty prefix. At every iteration Jev receives the **entire current WAT** and the supplied quicksort target, then ranks closed, positioned diff operations:
+
+```text
+insert(position, WAT block)
+replace(position, delete_count=1, WAT block)
+remove(position, delete_count=1)
+END
+```
+
+Run the included transition:
+
+```sh
+./jev-wasm-evolve --model jev-latest \
+  --initial examples/sort-evolution/insertion_sort.wat \
+  --target examples/sort-evolution/quicksort.wat \
+  --output generated/evolved-sort.wat \
+  --trace generated/evolution-trace.json \
+  "transition insertion sort to quicksort while preserving sort(offset, length)"
+```
+
+The compiler-safe path performs:
+
+```text
+INSERT  position 1  $swap
+INSERT  position 2  $partition
+INSERT  position 3  $quicksort
+REPLACE position 5  exported sort wrapper
+REMOVE  position 4  obsolete insertion-sort helper
+END
+```
+
+Positions are recomputed against the current program after every edit. Every intermediate complete WAT module compiles; both endpoints pass the same behavioral and memory-canary tests. Jev never writes Python, JavaScript, shell, or free-form source.
+
+This mode is honestly classified as **reference-guided transformation** because the full quicksort target is supplied. It demonstrates iterative program editing—not novel target-free synthesis.
+
+Details: [`examples/sort-evolution/README.md`](examples/sort-evolution/README.md)
+
+## The reconstruction loop
 
 ```text
 program spec

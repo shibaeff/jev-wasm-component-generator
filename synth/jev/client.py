@@ -9,6 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from synth.audit import audit_payload
+from synth.model import Choice
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 QUESTION = "next_block"
@@ -94,6 +95,71 @@ class JevClient:
         except Exception as exc:
             raise JevError("Jev API request failed") from exc
         return _decode(response, options)
+
+    def score_edit(
+        self,
+        task: str,
+        current_wat: str,
+        target_wat: str,
+        criteria: Mapping[str, Mapping[str, Any]],
+    ) -> Choice:
+        """Rank structured insert/remove/replace operations over a full WAT program."""
+        expected = set(criteria)
+        if not expected or len(expected) > 255 or any(not key.startswith("option_") for key in expected):
+            raise ValueError("edit criteria require 1..255 opaque option IDs")
+        end_count = sum(value == {"sentinel": "END"} for value in criteria.values())
+        if end_count != 1:
+            raise ValueError("edit criteria must contain END exactly once")
+        state = {
+            "task": task,
+            "current_wat": current_wat,
+            "target_wat": target_wat,
+            "method": "reference-guided whole-program WAT edit transformation",
+        }
+        payload = {"state": state, "model": self.model, "questions": {"next_edit": {
+            "type": "choice",
+            "instructions": (
+                "Choose the best next compiler-valid WAT edit. Positions are zero-based block "
+                "indices in current_wat. END means current_wat exactly matches target_wat."
+            ),
+            "criteria": dict(criteria),
+        }}}
+        audit_payload(payload)
+        try:
+            response = self._transport(self.endpoint, {"Authorization": "Bearer " + self._key,
+                "Content-Type": "application/json", "Accept": "application/json",
+                "User-Agent": "jev-wasm-component-generator/1.0"}, json.dumps(payload).encode(), self.timeout)
+        except HTTPError as exc:
+            raise JevError(f"Jev API request failed with HTTP {exc.code}") from exc
+        except URLError as exc:
+            raise JevError("Jev API request failed: network error") from exc
+        except MalformedResponseError:
+            raise
+        except Exception as exc:
+            raise JevError("Jev API request failed") from exc
+        return _decode_choice(response, "next_edit", expected)
+
+
+def _decode_choice(response: Mapping[str, Any], question: str, expected: set[str]) -> Choice:
+    try:
+        model, usage = response["model"], response["usage"]
+        answer = response["answers"][question]
+        selected, probabilities = answer["choice"], answer["probabilities"]
+    except (KeyError, TypeError) as exc:
+        raise MalformedResponseError("Jev response missing required fields") from exc
+    valid = (
+        isinstance(model, str) and bool(model) and isinstance(answer, dict)
+        and answer.get("type") == "choice" and selected in expected
+        and isinstance(probabilities, dict) and set(probabilities) == expected
+    )
+    if not valid or any(not _number(value) or not 0 <= value <= 1 for value in probabilities.values()):
+        raise MalformedResponseError("invalid Jev choice response")
+    if not math.isclose(sum(probabilities.values()), 1, abs_tol=1e-6):
+        raise MalformedResponseError("invalid Jev probabilities")
+    if not isinstance(usage, dict) or set(usage) != {"input_tokens", "output_tokens"} or any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0 for value in usage.values()):
+        raise MalformedResponseError("invalid Jev usage")
+    return Choice(selected, {key: float(probabilities[key]) for key in probabilities}, model, dict(usage))
 
 
 def _number(value: object) -> bool:

@@ -1,24 +1,51 @@
 ---
 name: jev-wasm-component-generator
-description: Use when generating or extending components with the Jev WAT-only autonomous reconstruction loop.
+description: Use when reconstructing or iteratively editing WAT with Jev.
 ---
 
 # Jev WAT component generator
 
-Jev is a closed-candidate decision model here. It may rank only ordered `;; JEV BLOCK:` WebAssembly Text from `library/*.wat` and explicit `END`. Hermes may orchestrate, compile, audit, and test with host tools, but host code is never Jev-generated output.
+Jev is a closed-candidate decision model. It may rank only WebAssembly Text blocks, structured WAT edit operations, and explicit `END`. Host Python/JavaScript/shell orchestrates, compiles, and tests; it is never Jev-generated output.
 
-## Run
+## Prefix reconstruction
 
 ```sh
-npm ci
 ./jev-wasm --model jev-latest "PROGRAM SPEC"
-make test && make audit
 ```
 
-Input can also come from `--spec-file` or stdin. Set `JEV_API_KEY` or `TYPESAFE_API_KEY` in the environment only. Never write credentials to source or traces.
+This mode starts empty and selects ordered `;; JEV BLOCK:` sections from `library/*.wat`.
 
-## Change safely
+## Whole-program edit evolution
 
-Read `docs/WORKFLOW.md`. Preserve opaque option IDs, full-prefix scoring, no teacher forcing, one model call per block plus final `END`, bounded decoding, exact-source compilation, and sanitized traces. Every added component must be independently compiling WAT, have at least two block markers, be in the manifest, and have behavioral tests.
+```sh
+./jev-wasm-evolve --model jev-latest \
+  --initial examples/sort-evolution/insertion_sort.wat \
+  --target examples/sort-evolution/quicksort.wat \
+  "transition insertion sort to quicksort while preserving sort(offset, length)"
+```
 
-Fail closed on malformed responses, non-exact or invalid WAT, secrets, or language-purity violations. Label exact library reconstruction as retrieval/imitation, never novel synthesis.
+At every iteration:
+
+1. Give Jev the complete current WAT and complete reference target WAT.
+2. Symbolically propose compiler-valid `insert`, `replace`, and `remove` operations over zero-based `;; JEV BLOCK:` positions, plus `END`.
+3. Map operations to opaque `option_NNN` IDs.
+4. Apply only the selected operation; never accept free-form model text.
+5. Compile the complete intermediate WAT.
+6. Continue until Jev selects `END` at an exact target match.
+7. Trace operation kind, current position, delete count, inserted-block hashes, probabilities, model, and token usage.
+
+The included demonstration begins with working insertion sort and reaches working quicksort through three inserts, one replacement, and one removal. Every intermediate program compiles. Because the target is supplied, classify the result as **reference-guided transformation**, not novel synthesis.
+
+## Hard rules
+
+- Jev-generated/selected source remains WAT only.
+- Keep operation positions relative to the current block sequence; do not reuse stale positions after edits.
+- Send full current and target programs on every edit decision.
+- Keep opaque IDs and validate the returned probability map exactly.
+- Reject premature `END`.
+- Never silently repair selected WAT with host-generated source.
+- Validate initial, target, every intermediate, and final WAT.
+- Store credentials only in `JEV_API_KEY` or `TYPESAFE_API_KEY`; never source, prompts, traces, or commits.
+- Run `make test && make audit` after any change.
+
+Read `docs/WORKFLOW.md` for both protocols. Exact library reconstruction is retrieval/imitation; target-supplied editing is reference-guided transformation; neither is novel synthesis.
